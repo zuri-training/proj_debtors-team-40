@@ -1,4 +1,3 @@
-
 #from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.contrib.auth.forms import AuthenticationForm
@@ -59,6 +58,7 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('signin')
+    
 
 def current_debtors(request):
     debtors = Debtors.objects.all().order_by('name')
@@ -67,7 +67,7 @@ def current_debtors(request):
 
 
 
-=======
+
 from django.shortcuts import render
 from . import models
 
@@ -97,3 +97,57 @@ def debtor_email(request):
     }
     return render(request, 'debtor-email.html', {"page_contents":page_contents})
 
+
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.contrib import messages
+from .models import School, School_Post, Debtor_list, Debtors, Comment
+from school_app.models import Debtor_list
+
+
+def room(request, pk):
+    room = Debtor_list.objects.get(id=pk)
+    room_comment = room.message_set.all()
+    participants = room.participants.all()
+
+    if request.method == 'POST':
+        message = Comment.objects.create(
+            user=request.user,
+            room=room,
+            body=request.POST.get('body')
+        )
+        room.participants.add(request.user)
+        return redirect('room', pk=room.id)
+
+    context = {'room': room, 'room_messages': room_comment,
+               'participants': participants}
+    return render(request, 'school_app/feed.html', context)
+
+
+
+def school_list(request):
+    """This is a school/debtor filter,
+        list of schools and
+        search bar inclusive
+    """
+    schools = School.objects.all()
+    return render(request, 'static/school-list.html', {'schools': schools})
+
+    
+def specific_sch(request):
+    """This is for list of
+        debtors in a particular school.
+        A one to many relationship
+    """
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    specific_debtors = Debtor_list.objects.filter(name__icontains=q)
+    return render(request, 'static/specific-school.html', {'specific_debtors': specific_debtors})
+
+
+def feed_page(request):
+    """Feed activity: contains school posts,
+    comments and likes.
+    """
+    feed_activity = School_Post.objects.all()
+    return render(request, 'school_app/feed.html', {'feed_activity': feed_activity})
+    
